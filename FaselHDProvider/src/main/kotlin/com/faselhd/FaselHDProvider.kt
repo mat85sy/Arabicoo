@@ -12,7 +12,7 @@ import org.jsoup.nodes.Element
 
 class FaselHD : MainAPI() {
     override var lang = "ar"
-    override var mainUrl = "https://www.faselhds.care"
+    override var mainUrl = "https://www.faselhd.cloud"
     private  val alternativeUrl = "https://www.faselhd.club"
     override var name = "FaselHD"
     override val usesWebView = false
