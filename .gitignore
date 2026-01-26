@@ -1,11 +1,27 @@
-```json
-{
-  "plugins": [
-    {
-      "name": "Example Plugin",
-      "version": "1.0.0",
-      "description": "An example plugin for demonstration purposes."
-    }
-  ]
-}
+```
+# Compiled and build artifacts
+*.class
+*.o
+*.obj
+*.out
+build/
+target/
+
+# Dependencies
+.gradle/
+lib/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Editors
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+*.env.*
 ```
