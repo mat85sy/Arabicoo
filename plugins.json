@@ -3,7 +3,7 @@
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/mat85sy/Arabicoo",
     "fileSize": 16194,
-    "status": 0,
+    "status": 1,
     "language": "ar",
     "authors": [
         "kingslayer_007"
@@ -14,7 +14,7 @@
         "Anime",
         "AsianDrama"
     ],
-    "version": 16,
+    "version": 17,
     "internalName": "FaselHDProvider",
     "url": "https://github.com/mat85sy/Arabicoo/raw/main/build/FaselHDProvider.cs3",
     "name": "FaselHDProvider"
@@ -110,7 +110,7 @@
         "AnimeMovie",
         "OVA"
     ],
-    "version": 5,
+    "version": 6,
     "internalName": "AnimeBlkomProvider",
     "url": "https://github.com/mat85sy/Arabicoo/raw/main/build/AnimeBlkomProvider.cs3",
     "name": "AnimeBlkomProvider"
