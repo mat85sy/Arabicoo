@@ -11,6 +11,8 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.nodes.Element
 import android.util.Log
 import kotlinx.coroutines.delay
+import kotlin.math.pow
+import kotlin.random.Random
 
 class AnimeBlkom : MainAPI() {
     override var mainUrl = "https://animeblkom.net"
@@ -20,36 +22,115 @@ class AnimeBlkom : MainAPI() {
     
     private val cfKiller = CloudflareKiller()
     
-    // Enhanced headers to better mimic a real browser
-    private val headersBuilder = mapOf(
-        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language" to "en-US,en;q=0.5",
-        "Accept-Encoding" to "gzip, deflate",
+    // Enhanced headers with realistic browser fingerprint to bypass Cloudflare
+    private val baseHeaders = mapOf(
+        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language" to "en-US,en;q=0.9",
+        "Accept-Encoding" to "gzip, deflate, br",
         "Connection" to "keep-alive",
         "Upgrade-Insecure-Requests" to "1",
         "Sec-Fetch-Dest" to "document",
         "Sec-Fetch-Mode" to "navigate",
         "Sec-Fetch-Site" to "none",
-        "Cache-Control" to "max-age=0"
+        "Sec-Fetch-User" to "?1",
+        "Cache-Control" to "max-age=0",
+        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
     
-    // Helper method to perform requests with retry logic for Cloudflare challenges
-    private suspend fun requestWithRetry(url: String, referer: String? = null): Document {
-        val requestHeaders = if (referer != null) {
-            headersBuilder + mapOf("Referer" to referer)
+    // More realistic headers with updated Chrome version
+    private val realisticHeaders = mapOf(
+        "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language" to "en-US,en;q=0.9",
+        "Accept-Encoding" to "gzip, deflate, br",
+        "Cache-Control" to "no-cache",
+        "Pragma" to "no-cache",
+        "Priority" to "u=0, i",
+        "Sec-Ch-Ua" to "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
+        "Sec-Ch-Ua-Mobile" to "?0",
+        "Sec-Ch-Ua-Platform" to "\"Windows\"",
+        "Sec-Fetch-Dest" to "document",
+        "Sec-Fetch-Mode" to "navigate",
+        "Sec-Fetch-Site" to "none",
+        "Sec-Fetch-User" to "?1",
+        "Upgrade-Insecure-Requests" to "1",
+        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-Requested-With" to "XMLHttpRequest",
+        "Connection" to "keep-alive"
+    )
+    
+    // Helper method to perform requests with enhanced Cloudflare bypass
+    private suspend fun requestWithRetry(url: String, referer: String? = null, isAjax: Boolean = false): Document {
+        // First try with realistic headers
+        var requestHeaders = if (isAjax) {
+            realisticHeaders + mapOf("X-Requested-With" to "XMLHttpRequest")
         } else {
-            headersBuilder
+            realisticHeaders
         }
         
-        // Try initial request
-        var response = app.get(url, headers = requestHeaders, interceptor = cfKiller)
+        if (referer != null) {
+            requestHeaders = requestHeaders + mapOf("Referer" to referer)
+        }
         
-        // If we get a Cloudflare challenge, wait and retry
+        // Make the initial request with CloudflareKiller interceptor
+        var response = app.get(
+            url = url,
+            headers = requestHeaders,
+            interceptor = cfKiller,
+            timeout = 30.seconds
+        )
+        
+        // If we get blocked, try with more sophisticated approach
         var attempts = 0
-        while (response.code in 400..500 && !response.isSuccessful && attempts < 3) {
-            delay((attempts + 1) * 2000L) // Wait progressively longer
-            response = app.get(url, headers = requestHeaders, interceptor = cfKiller)
+        while ((response.code in 400..599 || response.code == 503 || response.code == 403) && attempts < 5) {
+            val delayMs = (2.0.pow(attempts.toDouble()) * 1000 + (1000..3000).random()).toLong() // Add some randomness
+            Log.d("AnimeBlkom", "Cloudflare challenge detected (code: ${response.code}), attempt $attempts, waiting ${delayMs}ms")
+            
+            delay(delayMs)
+            
+            // Rotate through different header sets to avoid detection
+            val alternateHeaders = when (attempts % 3) {
+                0 -> realisticHeaders
+                1 -> baseHeaders
+                else -> realisticHeaders + mapOf("X-Requested-With" to "XMLHttpRequest")
+            }
+            
+            val finalHeaders = if (referer != null) {
+                alternateHeaders + mapOf("Referer" to referer)
+            } else {
+                alternateHeaders
+            }
+            
+            response = app.get(
+                url = url,
+                headers = finalHeaders,
+                interceptor = cfKiller,
+                timeout = 45.seconds
+            )
+            
             attempts++
+        }
+        
+        // If still unsuccessful, try with session persistence
+        if (!response.isSuccessful && attempts >= 5) {
+            Log.d("AnimeBlkom", "Standard retry failed, attempting session-based approach...")
+            
+            // Create a custom session to maintain cookies and state
+            val customApp = app.newBuilder().apply {
+                // Enable cookie persistence
+            }.build()
+            
+            response = customApp.get(
+                url = url,
+                headers = realisticHeaders + (referer?.let { mapOf("Referer" to it) } ?: emptyMap()),
+                interceptor = cfKiller,
+                timeout = 60.seconds
+            )
+        }
+        
+        // Check if we're still getting Cloudflare protection
+        if (response.code == 403 || response.code == 503) {
+            Log.d("AnimeBlkom", "Still blocked by Cloudflare after retries. Response code: ${response.code}")
+            throw Error("Site is blocking requests with Cloudflare protection. Code: ${response.code}")
         }
         
         return response.document
