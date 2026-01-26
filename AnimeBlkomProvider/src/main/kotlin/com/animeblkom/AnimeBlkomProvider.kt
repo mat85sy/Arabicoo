@@ -3,6 +3,8 @@ package com.animeblkom
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
+import com.lagradost.cloudstream3.utils.AppUtils.toJson
+import com.lagradost.cloudstream3.utils.CloudflareKiller
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
@@ -14,6 +16,8 @@ class AnimeBlkom : MainAPI() {
     override var name = "AnimeBlkom"
     override var lang = "ar"
     override val hasMainPage = true
+    
+    private val cfKiller = CloudflareKiller()
 
     override val supportedTypes = setOf(
         TvType.Anime,
@@ -44,8 +48,8 @@ class AnimeBlkom : MainAPI() {
         "$mainUrl/anime-list?states=finished&page=" to "Completed"
     )
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val doc = app.get(request.data + page).document
-        val list = doc.select("div.content-inner")
+        val document = app.get(request.data + page, interceptor = cfKiller).document
+        val list = document.select("div.content-inner")
             .mapNotNull { element ->
                 element.toSearchResponse()
             }
@@ -54,31 +58,31 @@ class AnimeBlkom : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val q = query.replace(" ","+")
-        return app.get("$mainUrl/search?query=$q").document.select("div.contents.text-center .content").map {
+        return app.get("$mainUrl/search?query=$q", interceptor = cfKiller).document.select("div.contents.text-center .content").map {
             it.toSearchResponse()
         }
     }
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
+        val document = app.get(url, interceptor = cfKiller).document
 
-        val title = doc.select("span h1").text().replace("\\(.*".toRegex(),"")
-        val poster = mainUrl + doc.select("div.poster img").attr("data-original")
-        val description = doc.select(".story p").text()
-        val genre = doc.select("p.genres a").map {
+        val title = document.select("span h1").text().replace("\\(.*".toRegex(),"")
+        val poster = mainUrl + document.select("div.poster img").attr("data-original")
+        val description = document.select(".story p").text()
+        val genre = document.select("p.genres a").map {
             it.text()
         }
-        val year = doc.select(".info-table div:contains(تاريخ الانتاج) span.info").text().split("-")[0].toIntOrNull()
-        val status = doc.select(".info-table div:contains(حالة الأنمي) span.info").text().let { if(it.contains("مستمر")) ShowStatus.Ongoing else ShowStatus.Completed }
-        val nativeName = doc.select("span[title=\"الاسم باليابانية\"]").text().replace(".*:".toRegex(),"")
-        val type = doc.select("h1 small").text().let {
+        val year = document.select(".info-table div:contains(تاريخ الانتاج) span.info").text().split("-")[0].toIntOrNull()
+        val status = document.select(".info-table div:contains(حالة الأنمي) span.info").text().let { if(it.contains("مستمر")) ShowStatus.Ongoing else ShowStatus.Completed }
+        val nativeName = document.select("span[title=\"الاسم باليابانية\"]").text().replace(".*:".toRegex(),"")
+        val type = document.select("h1 small").text().let {
             if (it.contains("movie")) TvType.AnimeMovie
             if (it.contains("ova|ona".toRegex())) TvType.OVA
             else TvType.Anime
         }
 
-        val malId = doc.select("a.blue.cta:contains(المزيد من المعلومات)").attr("href").replace(".*e\\/|\\/.*".toRegex(),"").toInt()
+        val malId = document.select("a.blue.cta:contains(المزيد من المعلومات)").attr("href").replace(".*e\\/|\\/.*".toRegex(),"").toInt()
         val episodes = arrayListOf<Episode>()
-        val episodeElements = doc.select(".episode-link")
+        val episodeElements = document.select(".episode-link")
         if(episodeElements.isEmpty()) {
             episodes.add(Episode(
                 url,
@@ -115,13 +119,13 @@ class AnimeBlkom : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val doc = app.get(data).document
-        Log.d("selectUrls","${doc.select("div.item a[data-src]")}")
-        doc.select("div.item a[data-src]").map {
+        val document = app.get(data, interceptor = cfKiller).document
+        Log.d("selectUrls","${document.select("div.item a[data-src]")}")
+        document.select("div.item a[data-src]").map {
             it.attr("data-src").let { url ->
                 Log.d("normalUrls","${url}")
                 if(url.startsWith("https://animetitans.net/")) {
-                    val iframe = app.get(url).document
+                    val iframe = app.get(url, interceptor = cfKiller).document
                     callback.invoke(
                         ExtractorLink(
                             this.name,
@@ -134,7 +138,7 @@ class AnimeBlkom : MainAPI() {
                     )
                 } else if(it.text() == "Blkom") {
                     Log.d("blUrls","${url}")
-                    val iframe = app.get(url).document
+                    val iframe = app.get(url, interceptor = cfKiller).document
                     iframe.select("source").forEach { source ->
                         callback.invoke(
                             ExtractorLink(
@@ -154,7 +158,7 @@ class AnimeBlkom : MainAPI() {
                 }
             }
         }
-        doc.select(".panel .panel-body a").apmap {
+        document.select(".panel .panel-body a").apmap {
             Log.d("it text","${it.text()}")
             callback.invoke(
                 ExtractorLink(
