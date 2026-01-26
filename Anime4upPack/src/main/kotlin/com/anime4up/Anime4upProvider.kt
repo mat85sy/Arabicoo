@@ -16,11 +16,11 @@ private fun String.getIntFromText(): Int? {
 }
 class WitAnime : Anime4up() {
     override var name = "WitAnime"
-    override var mainUrl = "https://witanime.pics"
+    override var mainUrl = "https://witanime.you/"
 }
 open class Anime4up : MainAPI() {
     override var lang = "ar"
-    override var mainUrl = "https://anime4up.cam"
+    override var mainUrl = "https://aniime4up.com/"
     override var name = "Anime4up"
     override val usesWebView = false
     override val hasMainPage = true
