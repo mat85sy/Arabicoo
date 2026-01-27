@@ -1,68 +1,11 @@
-```
-# Build artifacts
-build/
+*.class
 *.jar
 *.war
-*.class
-*.o
-*.obj
-*.so
-*.dll
-*.exe
-
-# Dependencies
-.gradle/
-node_modules/
-venv/
-.venv/
-__pycache__/
-*.egg-info/
-
-# Logs and temporary files
-*.log
-*.tmp
-*.swp
-*.swo
-
-# Environment variables
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# System files
-.DS_Store
-Thumbs.db
-
-# Compressed files
+*.ear
 *.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
 *.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
-```
+*.tar
+target/
+.gradle/
+build/
+!src/main/kotlin/com/animeblkom/AnimeBlkomProvider.kt

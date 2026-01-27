@@ -16,11 +16,22 @@ import kotlin.random.Random
 
 class AnimeBlkom : MainAPI() {
     override var mainUrl = "https://blkom.com"
+    private val alternativeUrl = "https://www.animeblkom.net"
     override var name = "AnimeBlkom"
     override var lang = "ar"
     override val hasMainPage = true
     
     private val cfKiller = CloudflareKiller()
+    
+    // Helper function to get the correct image URL with fallback domain support
+    private fun getImageUrl(imagePath: String): String {
+        return if (imagePath.startsWith("http")) {
+            imagePath
+        } else {
+            // Sometimes the image path is relative to the main domain
+            mainUrl + imagePath
+        }
+    }
     
     // Enhanced headers with realistic browser fingerprint to bypass Cloudflare
     private val baseHeaders = mapOf(
@@ -129,7 +140,55 @@ class AnimeBlkom : MainAPI() {
         
         // Check if we're still getting Cloudflare protection
         if (response.code == 403 || response.code == 503) {
-            Log.d("AnimeBlkom", "Still blocked by Cloudflare after retries. Response code: ${response.code}")
+            Log.d("AnimeBlkom", "Still blocked by Cloudflare after retries. Response code: ${response.code}, trying alternative URL...")
+            
+            // Try with alternative URL
+            val altUrl = if (url.contains("blkom.com")) {
+                url.replace("blkom.com", "www.animeblkom.net")
+            } else if (url.contains("animeblkom.net")) {
+                url.replace("www.animeblkom.net", "blkom.com")
+            } else {
+                url // Return original if neither domain is matched
+            }
+            
+            if (altUrl != url) {
+                Log.d("AnimeBlkom", "Trying alternative URL: $altUrl")
+                
+                // Try the alternative URL with similar retry logic
+                var altResponse = app.get(
+                    url = altUrl,
+                    headers = realisticHeaders + (referer?.let { mapOf("Referer" to it) } ?: emptyMap()),
+                    interceptor = cfKiller,
+                    timeout = 45.seconds
+                )
+                
+                var altAttempts = 0
+                while ((altResponse.code in 400..599 || altResponse.code == 503 || altResponse.code == 403) && altAttempts < 3) {
+                    val delayMs = (2.0.pow(altAttempts.toDouble()) * 1000 + (2000..4000).random()).toLong()
+                    Log.d("AnimeBlkom", "Alternative URL blocked (code: ${altResponse.code}), attempt $altAttempts, waiting ${delayMs}ms")
+                    
+                    delay(delayMs)
+                    
+                    val altHeaders = when (altAttempts % 2) {
+                        0 -> realisticHeaders
+                        else -> baseHeaders
+                    }
+                    
+                    altResponse = app.get(
+                        url = altUrl,
+                        headers = altHeaders + (referer?.let { mapOf("Referer" to it) } ?: emptyMap()),
+                        interceptor = cfKiller,
+                        timeout = 60.seconds
+                    )
+                    
+                    altAttempts++
+                }
+                
+                if (altResponse.isSuccessful) {
+                    return altResponse.document
+                }
+            }
+            
             throw Error("Site is blocking requests with Cloudflare protection. Code: ${response.code}")
         }
         
@@ -145,7 +204,7 @@ class AnimeBlkom : MainAPI() {
     private fun Element.toSearchResponse(): SearchResponse {
         val url = select("div.poster a").attr("href")
         val name = select("div.name a").text()
-        val poster = mainUrl + select("div.poster img").attr("data-original")
+        val poster = getImageUrl(select("div.poster img").attr("data-original"))
         val year = select("div[title=\"سنة الانتاج\"]").text().toIntOrNull()
         val episodesNumber = select("div[title=\"عدد الحلقات\"]").text().toIntOrNull()
         val tvType = select("div[title=\"النوع\"]").text().let { if(it.contains("فيلم|خاصة".toRegex())) TvType.AnimeMovie else if(it.contains("أوفا|أونا".toRegex())) TvType.OVA else TvType.Anime }
