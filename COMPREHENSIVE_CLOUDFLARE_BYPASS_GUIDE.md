@@ -2,7 +2,7 @@
 
 ## Summary of Current Implementation
 
-The AnimeBlkomProvider has been enhanced with several techniques to better handle Cloudflare protection on animeblkom.net. The current implementation includes:
+The AnimeBlkomProvider has been enhanced with several techniques to better handle Cloudflare protection on blkom.com. The current implementation includes:
 
 1. **Enhanced HTTP Headers**: Realistic browser-like headers that mimic actual browser requests
 2. **Retry Logic**: Automatic retry with exponential backoff for failed requests
@@ -171,7 +171,7 @@ If Cloudflare protection becomes more stringent, consider:
 1. **IP Rotation**: Implementing proxy support for IP address rotation
 2. **Advanced Headers**: Regular updates to header patterns as browsers evolve
 3. **Timing Variations**: More sophisticated timing patterns to appear human-like
-4. **Alternative Sources**: Identifying backup sources if animeblkom.net becomes inaccessible
+4. **Alternative Sources**: Identifying backup sources if blkom.com becomes inaccessible
 
 ## Conclusion
 

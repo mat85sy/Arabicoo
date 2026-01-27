@@ -1,7 +1,7 @@
 # AnimeBlkom Provider - Cloudflare Protection Bypass Guide
 
 ## Overview
-This provider implements advanced techniques to bypass Cloudflare protection on animeblkom.net, incorporating the latest methods to handle Cloudflare's anti-bot measures effectively.
+This provider implements advanced techniques to bypass Cloudflare protection on blkom.com, incorporating the latest methods to handle Cloudflare's anti-bot measures effectively.
 
 ## Key Cloudflare Bypass Techniques Implemented
 

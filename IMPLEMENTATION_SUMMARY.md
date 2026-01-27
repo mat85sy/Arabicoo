@@ -1,7 +1,7 @@
 # AnimeBlkom Provider Cloudflare Bypass Implementation Summary
 
 ## Current Status
-The AnimeBlkom provider has been significantly enhanced with multiple layers of Cloudflare bypass techniques, but testing reveals that animeblkom.net still presents strong protection measures that block access.
+The AnimeBlkom provider has been significantly enhanced with multiple layers of Cloudflare bypass techniques, but testing reveals that blkom.com still presents strong protection measures that block access.
 
 ## Implemented Techniques
 
@@ -67,6 +67,6 @@ Check if there are existing community solutions or services that provide access 
 
 ## Conclusion
 
-While the current implementation represents a significant improvement over the original provider, animeblkom.net's Cloudflare protection remains too sophisticated for header manipulation and retry logic alone. More advanced techniques involving actual JavaScript execution or browser automation would be required to successfully bypass their protection.
+While the current implementation represents a significant improvement over the original provider, blkom.com's Cloudflare protection remains too sophisticated for header manipulation and retry logic alone. More advanced techniques involving actual JavaScript execution or browser automation would be required to successfully bypass their protection.
 
 The implemented changes are still valuable as they represent best practices for dealing with moderate Cloudflare protection and will work better with sites that have less sophisticated anti-bot measures.

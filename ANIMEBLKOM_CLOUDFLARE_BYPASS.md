@@ -1,7 +1,7 @@
 # Cloudflare Bypass Solutions for AnimeBlkomProvider
 
 ## Overview
-This document outlines various techniques to bypass Cloudflare protection on animeblkom.net for the AnimeBlkomProvider in CloudStream3.
+This document outlines various techniques to bypass Cloudflare protection on blkom.com for the AnimeBlkomProvider in CloudStream3.
 
 ## Current Implementation Improvements
 

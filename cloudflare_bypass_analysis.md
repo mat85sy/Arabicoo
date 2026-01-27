@@ -14,7 +14,7 @@ The AnimeBlkomProvider already implements several advanced Cloudflare bypass tec
 
 ## Test Results
 
-When testing against animeblkom.net, the server returns:
+When testing against blkom.com, the server returns:
 - Status Code: 403
 - Header: `cf-mitigated: challenge`
 - Ray ID: Present (indicating Cloudflare protection)
@@ -22,7 +22,7 @@ When testing against animeblkom.net, the server returns:
 
 ## Analysis
 
-The current implementation is actually quite sophisticated and follows best practices. However, animeblkom.net has implemented extremely advanced Cloudflare protection that includes:
+The current implementation is actually quite sophisticated and follows best practices. However, blkom.com has implemented extremely advanced Cloudflare protection that includes:
 
 1. **JavaScript Challenge Execution** - Requires executing complex JavaScript to validate browser legitimacy
 2. **Behavioral Analysis** - Analyzes request patterns, timing, and interaction behavior
@@ -57,7 +57,7 @@ val customClient = app.newBuilder()
 
 ## Conclusion
 
-The current implementation is already well-optimized for standard Cloudflare bypass. The protection on animeblkom.net appears to be enterprise-grade, requiring more sophisticated techniques than simple header manipulation. The existing code provides the best possible approach within the CloudStream3 framework constraints.
+The current implementation is already well-optimized for standard Cloudflare bypass. The protection on blkom.com appears to be enterprise-grade, requiring more sophisticated techniques than simple header manipulation. The existing code provides the best possible approach within the CloudStream3 framework constraints.
 
 For ultimate Cloudflare bypass success, JavaScript execution would be required, which is outside the scope of basic HTTP requests and would require either:
 - A full browser engine integration
