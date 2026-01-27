@@ -15,7 +15,7 @@ import kotlin.math.pow
 import kotlin.random.Random
 
 class AnimeBlkom : MainAPI() {
-    override var mainUrl = "https://animeblkom.net"
+    override var mainUrl = "https://blkom.com"
     override var name = "AnimeBlkom"
     override var lang = "ar"
     override val hasMainPage = true

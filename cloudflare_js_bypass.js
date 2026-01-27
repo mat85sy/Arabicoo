@@ -170,7 +170,7 @@ async function example() {
     const bypasser = new CloudflareBypass();
     
     try {
-        const content = await bypasser.bypass('https://animeblkom.net');
+        const content = await bypasser.bypass('https://blkom.com');
         console.log('Successfully bypassed Cloudflare!');
         console.log('Content length:', content.length);
     } catch (error) {

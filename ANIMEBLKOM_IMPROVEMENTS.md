@@ -1,7 +1,7 @@
 # AnimeBlkomProvider Cloudflare Bypass Improvements
 
 ## Overview
-This document describes the improvements made to the AnimeBlkomProvider to better handle Cloudflare protection on animeblkom.net.
+This document describes the improvements made to the AnimeBlkomProvider to better handle Cloudflare protection on blkom.com.
 
 ## Key Improvements
 
