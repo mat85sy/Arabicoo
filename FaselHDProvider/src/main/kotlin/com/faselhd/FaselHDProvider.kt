@@ -25,23 +25,51 @@ class FaselHD : MainAPI() {
     }
 
     private fun Element.toSearchResponse(): SearchResponse? {
-        val url = select("div.postDiv a").attr("href") ?: return null
-        val posterUrl = select("div.postDiv a div img").attr("data-src") ?:
-        select("div.postDiv a div img").attr("src")
-        val title = select("div.postDiv a div img").attr("alt")
+        val url = select("div.postDiv a").attr("href") ?: select("a").attr("href") ?: return null
+        var posterUrl = select("div.postDiv a div img").attr("data-src") ?:
+        select("div.postDiv a div img").attr("src") ?:
+        select("img").attr("data-src") ?:
+        select("img").attr("src") ?: ""
+        
+        // Ensure the poster URL is complete
+        if (posterUrl.startsWith("//")) {
+            posterUrl = "https:$posterUrl"
+        } else if (posterUrl.startsWith("/")) {
+            posterUrl = mainUrl + posterUrl
+        }
+        
+        val title = select("div.postDiv a div img").attr("alt") ?: 
+        select("img").attr("alt") ?: 
+        select(".title").text().ifEmpty { select("a").text() }
+        
         val quality = select(".quality").first()?.text()?.replace("1080p |-".toRegex(), "")
         val type = if(title.contains("فيلم")) TvType.Movie else TvType.TvSeries
-        return MovieSearchResponse(
-            title.replace("الموسم الأول|برنامج|فيلم|مترجم|اون لاين|مسلسل|مشاهدة|انمي|أنمي".toRegex(),""),
-            url,
-            this@FaselHD.name,
-            type,
-            posterUrl,
-            null,
-            null,
-            quality = getQualityFromString(quality),
-            posterHeaders = cfKiller.getCookieHeaders(alternativeUrl).toMap()
-        )
+        
+        return if (type == TvType.Movie) {
+            MovieSearchResponse(
+                title.replace("الموسم الأول|برنامج|فيلم|مترجم|اون لاين|مسلسل|مشاهدة|انمي|أنمي".toRegex(),"").trim(),
+                url,
+                this@FaselHD.name,
+                type,
+                posterUrl,
+                null,
+                null,
+                quality = getQualityFromString(quality),
+                posterHeaders = cfKiller.getCookieHeaders(mainUrl).toMap()
+            )
+        } else {
+            TvSeriesSearchResponse(
+                title.replace("الموسم الأول|برنامج|فيلم|مترجم|اون لاين|مسلسل|مشاهدة|انمي|أنمي".toRegex(),"").trim(),
+                url,
+                this@FaselHD.name,
+                type,
+                posterUrl,
+                null,
+                null,
+                quality = getQualityFromString(quality),
+                posterHeaders = cfKiller.getCookieHeaders(mainUrl).toMap()
+            )
+        }
     }
     override val mainPage = mainPageOf(
             "$mainUrl/all-movies/page/0" to "جميع الافلام",
@@ -84,8 +112,17 @@ class FaselHD : MainAPI() {
             doc = app.get(url, interceptor = cfKiller, timeout = 120).document
         }
         val isMovie = doc.select("div.epAll").isEmpty()
-        val posterUrl = doc.select("div.posterImg img").attr("src")
+        var posterUrl = doc.select("div.posterImg img").attr("src")
             .ifEmpty { doc.select("div.seasonDiv.active img").attr("data-src") }
+            .ifEmpty { doc.select("img[itemprop=image]").attr("src") }
+            .ifEmpty { doc.select("meta[property=og:image]").attr("content") }
+        
+        // Ensure the poster URL is complete
+        if (posterUrl.startsWith("//")) {
+            posterUrl = "https:$posterUrl"
+        } else if (posterUrl.startsWith("/") && !posterUrl.startsWith("//")) {
+            posterUrl = mainUrl + posterUrl
+        }
 
         val year = doc.select("div[id=\"singleList\"] div[class=\"col-xl-6 col-lg-6 col-md-6 col-sm-6\"]").firstOrNull {
             it.text().contains("سنة|موعد".toRegex())
@@ -108,7 +145,7 @@ class FaselHD : MainAPI() {
         val synopsis = doc.select("div.singleDesc p").text()
         return if (isMovie) {
             newMovieLoadResponse(
-                title,
+                title.trim(),
                 url,
                 TvType.Movie,
                 url
@@ -119,7 +156,7 @@ class FaselHD : MainAPI() {
                 this.duration = duration
                 this.tags = tags
                 this.recommendations = recommendations
-                this.posterHeaders = cfKiller.getCookieHeaders(alternativeUrl).toMap()
+                this.posterHeaders = cfKiller.getCookieHeaders(mainUrl).toMap()
             }
         } else {
             val episodes = ArrayList<Episode>()
@@ -151,14 +188,14 @@ class FaselHD : MainAPI() {
                         )
                     }
                 }
-            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.distinct().sortedBy { it.episode }) {
+            newTvSeriesLoadResponse(title.trim(), url, TvType.TvSeries, episodes.distinct().sortedBy { it.episode }) {
                 this.duration = duration
                 this.posterUrl = posterUrl
                 this.year = year
                 this.plot = synopsis
                 this.tags = tags
                 this.recommendations = recommendations
-                this.posterHeaders = cfKiller.getCookieHeaders(alternativeUrl).toMap()
+                this.posterHeaders = cfKiller.getCookieHeaders(mainUrl).toMap()
             }
         }
     }
@@ -173,36 +210,110 @@ class FaselHD : MainAPI() {
         if(doc.select("title").text() == "Just a moment...") {
             doc = app.get(data, interceptor = cfKiller).document
         }
-        listOf(
-            doc.select(".downloadLinks a").attr("href") to "download",
-            doc.select("iframe[name=\"player_iframe\"]").attr("src") to "iframe"
-        ).apmap { (url, method) ->
-            if(method == "download") {
-                val player = app.post(url, interceptor = cfKiller, referer = mainUrl, timeout = 120).document
-                callback.invoke(
-                    ExtractorLink(
-                        this.name,
-                        this.name + " Download Source",
-                        player.select("div.dl-link a").attr("href"),
-                        this.mainUrl,
-                        Qualities.Unknown.value
+        
+        // Get both download and iframe links
+        val downloadLink = doc.select(".downloadLinks a").attr("href")
+        val iframeSrc = doc.select("iframe[name=\"player_iframe\"]").attr("src")
+        
+        // Try download link if available
+        if(downloadLink.isNotBlank()) {
+            try {
+                val player = app.post(downloadLink, interceptor = cfKiller, referer = data, timeout = 120).document
+                val directLink = player.select("div.dl-link a").attr("href")
+                if(directLink.isNotBlank()) {
+                    callback.invoke(
+                        ExtractorLink(
+                            this.name,
+                            this.name + " Download Source",
+                            directLink,
+                            data,
+                            Qualities.Unknown.value,
+                            headers = cfKiller.getCookieHeaders(data).toMap()
+                        )
                     )
-                )
-            } else if(method == "iframe") {
+                }
+            } catch (e: Exception) {
+                // Log error but continue with iframe method
+                println("Error getting download link: ${e.message}")
+            }
+        }
+        
+        // Try iframe method if available
+        if(iframeSrc.isNotBlank()) {
+            try {
                 val webView = WebViewResolver(
                     Regex("""master\.m3u8""")
                 ).resolveUsingWebView(
                     requestCreator(
-                        "GET", url, referer = mainUrl
+                        "GET", iframeSrc, referer = data
                     )
-                ).first
-                M3u8Helper.generateM3u8(
-                    this.name,
-                    webView?.url.toString(),
-                    referer = mainUrl
-                ).toList().forEach(callback)
+                ).firstOrNull // Use firstOrNull to avoid crashes if no match found
+                
+                if(webView != null && !webView.url.isNullOrEmpty()) {
+                    M3u8Helper.generateM3u8(
+                        this.name,
+                        webView.url!!,
+                        referer = data,
+                        headers = cfKiller.getCookieHeaders(data).toMap()
+                    ).toList().forEach(callback)
+                } else {
+                    // If WebView didn't work, try alternative approach
+                    // Get the iframe content and extract sources
+                    val iframeDoc = app.get(iframeSrc, referer = data, interceptor = cfKiller).document
+                    
+                    // Look for video sources in various formats
+                    val sources = iframeDoc.select("source").map { it.attr("src") }.filter { it.isNotBlank() }
+                    sources.forEach { source ->
+                        callback.invoke(
+                            ExtractorLink(
+                                this.name,
+                                this.name + " Video Source",
+                                source,
+                                data,
+                                Qualities.Unknown.value,
+                                headers = cfKiller.getCookieHeaders(data).toMap()
+                            )
+                        )
+                    }
+                    
+                    // Also check for script tags that might contain video URLs
+                    val scripts = iframeDoc.select("script")
+                    for(script in scripts) {
+                        val scriptText = script.html()
+                        // Look for common patterns in JavaScript for video URLs
+                        val urlPattern = Regex("""(?:src|file|video_url):\s*['"]([^'"]+\.(?:mp4|m3u8|mkv|webm))['"]""")
+                        val matches = urlPattern.findAll(scriptText)
+                        matches.forEach { match ->
+                            val url = match.groupValues[1]
+                            callback.invoke(
+                                ExtractorLink(
+                                    this.name,
+                                    this.name + " JS Source",
+                                    url,
+                                    data,
+                                    Qualities.Unknown.value,
+                                    headers = cfKiller.getCookieHeaders(data).toMap()
+                                )
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                println("Error getting iframe link: ${e.message}")
+                // As a fallback, try to get the iframe src directly
+                callback.invoke(
+                    ExtractorLink(
+                        this.name,
+                        this.name + " Iframe Direct",
+                        iframeSrc,
+                        data,
+                        Qualities.Unknown.value,
+                        headers = cfKiller.getCookieHeaders(data).toMap()
+                    )
+                )
             }
         }
+        
         return true
     }
 }
