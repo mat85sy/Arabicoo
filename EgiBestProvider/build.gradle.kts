@@ -1,47 +1,13 @@
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-}
+version = 3
 
-android {
-    compileSdk = 33
+cloudstream {
+    authors = listOf("EgiBest")
 
-    defaultConfig {
-        applicationId = "com.example.EgiBestProvider"
-        minSdk = 21
-        targetSdk = 33
-        versionCode = 1
-        versionName = "1.0"
+    language = "ar"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
+    status = 1 // will be 1 if working, 0 if not
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
+    tvTypes = listOf("Movie", "TvSeries")
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    buildFeatures {
-        compose = false
-        viewBinding = true
-    }
-}
-
-dependencies {
-    implementation("com.github.recloudstream:cloudstream3:master-SNAPSHOT")
-    implementation(kotlin("script-runtime"))
+    iconUrl = "https://www.google.com/s2/favicons?domain=egibest.site&sz=%size%"
 }
