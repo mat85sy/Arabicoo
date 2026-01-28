@@ -2,14 +2,22 @@
 # Gradle
 .gradle/
 build/
-!gradle-wrapper.jar
+target/
 
-# IDE
-.idea/
-*.iml
-*.ipr
-*.iws
-.vscode/
+# Dependencies
+node_modules/
+vendor/
+
+# Archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.gz
+*.bz2
+*.xz
+*.7z
+*.rar
 
 # Logs
 *.log
@@ -17,18 +25,15 @@ build/
 # Environment
 .env
 .env.local
-*.env
+*.env.*
 
-# Dependencies
-node_modules/
-vendor/
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-*~
 ```
