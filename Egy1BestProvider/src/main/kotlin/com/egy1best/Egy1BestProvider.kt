@@ -7,30 +7,30 @@ import org.jsoup.nodes.Element
 
 class Egy1Best : MainAPI() {
     override var lang = "ar"
-    override var mainUrl = "https://egy1best.cimawbas.tv/egy1/index.php"
+    override var mainUrl = "https://egy1best.cimawbas.tv"
     override var name = "Egy1Best"
-    override val usesWebView = true  // This site might need webview for JS rendering
+    override val usesWebView = false
     override val hasMainPage = true
     override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie)
 
     override val mainPage = mainPageOf(
-        "$mainUrl" to "Home",
-        "$mainUrl?page=movies" to "Movies",
-        "$mainUrl?page=series" to "Series",
-        "$mainUrl?page=trending" to "Trending"
+        "$mainUrl/" to "Home",
+        "$mainUrl/category/movies/" to "Movies",
+        "$mainUrl/category/tvshows/" to "Series",
+        "$mainUrl/trending/" to "Trending"
     )
 
     override suspend fun getMainPage(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        val url = if (request.data.contains("?")) {
-            "${request.data}&page=$page"
+        val url = if (request.data.contains("/trending/")) {
+            if (page == 1) request.data else "${request.data}page/$page/"
         } else {
-            "${request.data}?page=$page"
+            if (page == 1) request.data else "${request.data}page/$page/"
         }
         val document = app.get(url, timeout = 120).document
-        val home = document.select("div.movie-item, article, .item").mapNotNull {
+        val home = document.select("div.movie-item, article, .item, .post-item").mapNotNull {
             it.toSearchResponse()
         }
         return newHomePageResponse(request.name, home)
@@ -60,9 +60,9 @@ class Egy1Best : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl?search=${query.replace(" ", "%20")}"
+        val url = "$mainUrl/search/${query.trim()}/"
         val document = app.get(url).document
-        return document.select("div.movie-item, article, .item").mapNotNull {
+        return document.select("div.movie-item, article, .item, .result-item").mapNotNull {
             it.toSearchResponse()
         }
     }
